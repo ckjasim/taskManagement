@@ -8,6 +8,9 @@ import StarterKit from '@tiptap/starter-kit';
 import BoldExtension from '@tiptap/extension-bold';
 import ItalicExtension from '@tiptap/extension-italic';
 
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
 const validationSchema = Yup.object({
   title: Yup.string()
     .required('Title is required')
@@ -18,9 +21,9 @@ const validationSchema = Yup.object({
   category: Yup.string()
     .required('Category is required')
     .oneOf(['Work', 'Personal'], 'Invalid category'),
-  dueDate: Yup.date()
-    .required('Due date is required')
-    .min(new Date(), 'Due date cannot be in the past'),
+    dueDate: Yup.date()
+    .required("Due date is required")
+    .min(today, "Due date cannot be in the past"),
   status: Yup.string()
     .required('Status is required')
     .oneOf(['TO-DO', 'IN-PROGRESS', 'COMPLETED'], 'Invalid status'),

@@ -2,6 +2,7 @@ import { Task } from "@/types";
 import { useSortable } from "@dnd-kit/sortable";
 import { Card, CardContent } from "../ui/card";
 import { MoreHorizontal } from "lucide-react";
+import { format, isToday, parseISO } from 'date-fns';
 import TaskActions from "./TaskAction";
 
 export const TaskCard = ({ task, isDragging = false }: { task: Task; isDragging?: boolean }) => {
@@ -14,9 +15,13 @@ export const TaskCard = ({ task, isDragging = false }: { task: Task; isDragging?
   } = useSortable({
     id: task.id,
   });
-const handleEdit=()=>{
+   const formattedDate = isToday(parseISO(task.dueDate))
+      ? 'Today'
+      : format(parseISO(task.dueDate), 'dd MMM yyyy');
+    const handleEdit = () => {
+      // setIsCreateModalOpen(true);
+    };
 
-}
 const handleDelete=()=>{
 
 }
@@ -33,7 +38,7 @@ const handleDelete=()=>{
       style={style}
       className={`${isDragging ? 'opacity-50' : ''}`}
     >
-      <Card className="bg-white cursor-move">
+      <Card className="bg-white cursor-grab">
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-4">
             <h3 className="font-medium">{task.title}</h3>
@@ -41,7 +46,7 @@ const handleDelete=()=>{
           </div>
           <div className="flex justify-between text-sm text-gray-500">
             <span>{task.category}</span>
-            <span>{task.dueDate}</span>
+            <span>       {formattedDate}</span>
           </div>
         </CardContent>
       </Card>

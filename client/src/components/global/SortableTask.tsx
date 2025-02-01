@@ -1,9 +1,16 @@
 import { useSortable } from '@dnd-kit/sortable';
-import { Calendar, MoreHorizontal, MoreVertical } from 'lucide-react';
+import {
+  Calendar,
+  CircleCheck,
+  GripVertical,
+  MoreHorizontal,
+  MoreVertical,
+} from 'lucide-react';
 import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 import TaskActions from './TaskAction';
 import TaskModal from './modal/TaskModal';
+import { format, isToday, parseISO } from 'date-fns';
 
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/config/firebaseConfig';
@@ -26,7 +33,9 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
+  const formattedDate = isToday(parseISO(task.dueDate))
+    ? 'Today'
+    : format(parseISO(task.dueDate), 'dd MMM yyyy');
   const handleEdit = () => {
     setIsCreateModalOpen(true);
   };
@@ -126,32 +135,49 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
         ref={setNodeRef}
         style={style}
         {...attributes}
-        className="p-3 border-b flex items-center gap-3 bg-gray-50 cursor-move"
+        className="p-3 border-b flex items-center gap-3 bg-gray-50 cursor-default justify-between"
       >
-        <div {...listeners} className="cursor-grab">
-          <MoreVertical className="w-4 h-4" />
+        <div className="flex items-center gap-2 w-1/3 min-w-fit">
+          <input
+            type="checkbox"
+            className="w-4 h-4"
+            checked={selected}
+            onChange={() => onSelect(task)}
+          />
+          <div {...listeners} className="cursor-grab">
+            <GripVertical className="w-4 h-4 text-gray-400" />
+          </div>
+
+          <CircleCheck
+            className={`w-4 h-4 rounded-full ${
+              task.status === 'COMPLETED'
+                ? 'bg-green-500 text-white'
+                : 'text-gray-400'
+            }`}
+          />
+
+          <div
+            className={`font-medium flex-1 truncate min-w-0 ${
+              task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''
+            }`}
+          >
+            {task.title}
+          </div>
         </div>
-        <input
-          type="checkbox"
-          className="w-4 h-4"
-          checked={selected}
-          onChange={() => onSelect(task)}
-        />
-        <Calendar className="w-4 h-4 text-gray-400" />
-        <div className="flex-1">
-          <div>{task.title}</div>
-          <div className="text-sm text-gray-500">{task.dueDate}</div>
+
+        {/* Middle Section: Due Date */}
+        <div className="text-sm text-gray-500 w-1/5 text-center">
+          {formattedDate}
         </div>
-        <div className="relative">
-          {/* Status Display (Click to Toggle) */}
+
+        {/* Status Dropdown */}
+        <div className="relative w-1/5 text-center">
           <div
             className="text-sm text-gray-500 cursor-pointer hover:text-gray-700"
             onClick={() => setIsOpen(!isOpen)}
           >
             {task.status}
           </div>
-
-          {/* Dropdown Menu */}
           {isOpen && (
             <div className="absolute mt-1 w-32 bg-white border border-gray-300 shadow-lg rounded-md z-10">
               {statuses.map((status) => (
@@ -161,8 +187,8 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
                     task.status === status ? 'font-semibold' : ''
                   }`}
                   onClick={() => {
-                    handleStatusChange(status); // Update status
-                    setIsOpen(false); // Close dropdown
+                    handleStatusChange(status);
+                    setIsOpen(false);
                   }}
                 >
                   {status}
@@ -171,7 +197,12 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
             </div>
           )}
         </div>
-        <div className="text-sm text-gray-500">{task.category}</div>
+
+        {/* Right Section: Category & Actions */}
+        <div className="text-sm text-gray-500 w-1/5 text-center">
+          {task.category}
+        </div>
+        <TaskActions onEdit={handleEdit} onDelete={handleDelete} />
       </div>
     </>
   );
