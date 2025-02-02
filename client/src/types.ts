@@ -28,3 +28,17 @@ export interface Column {
   bgColor: string;
   items: Task[];
 }
+export interface Tasks {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  dueDate: string;
+  userId: string;
+  [key: string]: any; // For any additional fields
+}
+
+export interface TasksByStatus {
+  [key: string]: Tasks[];
+}

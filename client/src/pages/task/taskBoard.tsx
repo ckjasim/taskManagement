@@ -18,9 +18,9 @@ import { Column } from '@/types';
 import { TaskCard } from '@/components/global/TaskCard';
 import { KanbanColumn } from '@/components/global/KanbanColumn';
 import { db } from '@/config/firebaseConfig';
-import { updateDoc,doc } from 'firebase/firestore';
+import { updateDoc, doc } from 'firebase/firestore';
 
-const KanbanBoard = ({ tasks  , setTasks }) => {
+const KanbanBoard = ({ tasks, setTasks }) => {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   
   const [columns, setColumns] = useState<Column[]>([
@@ -44,7 +44,6 @@ const KanbanBoard = ({ tasks  , setTasks }) => {
     }
   ]);
 
-  // Update columns when tasks prop changes
   useEffect(() => {
     setColumns(prevColumns => prevColumns.map(column => ({
       ...column,
@@ -78,6 +77,9 @@ const KanbanBoard = ({ tasks  , setTasks }) => {
     const overContainer = columns.find(col =>
       col.id === over.id || col.items.some(item => item.id === over.id)
     );
+
+    console.log(activeContainer,'ssssssssss')
+    console.log(overContainer,'fff')
   
     if (!activeContainer || !overContainer) {
       setActiveId(null);
@@ -98,23 +100,21 @@ const KanbanBoard = ({ tasks  , setTasks }) => {
         : "TO-DO";
 
     setTasks(prev => {
-      const statusKey = Object.keys(prev).find(key => 
-        prev[key].some(task => task.id === active.id)
-      );
-    
-      if (!statusKey) return prev;
-    
-      const updatedSourceColumn = prev[statusKey].filter(task => task.id !== active.id);
-    
-      const updatedDestinationColumn = [...prev[overContainer.id], { ...activeItem, status: newStatus }];
-    
+      // First, remove the task from all columns to prevent duplicates
+      const cleanedPrev = Object.entries(prev).reduce((acc, [key, value]) => {
+        acc[key] = value.filter(task => task.id !== active.id);
+        return acc;
+      }, {});
+      
+      // Then add the task to the destination column
       return {
-        ...prev,
-        [statusKey]: updatedSourceColumn,
-        [overContainer.id]: updatedDestinationColumn, 
+        ...cleanedPrev,
+        [overContainer.id]: [
+          ...cleanedPrev[overContainer.id],
+          { ...activeItem, status: newStatus }
+        ]
       };
     });
-    
     
     // Update status in Firebase
     try {
@@ -126,7 +126,6 @@ const KanbanBoard = ({ tasks  , setTasks }) => {
   
     setActiveId(null);
   };
-  
 
   const activeItem = activeId ? columns
     .flatMap(col => col.items)
