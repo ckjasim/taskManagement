@@ -2,11 +2,9 @@ import { useState } from 'react';
 import {
   Calendar,
   ChevronDown,
-  MoreVertical,
   ChevronUp,
   Plus,
   X,
-  Heading1,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -23,11 +21,10 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
-  useSortable,
 } from '@dnd-kit/sortable';
 import { SortableTask } from '@/components/global/SortableTask';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/config/firebaseConfig';
+import { addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '@/config/firebaseConfig';
 import {
   Select,
   SelectContent,
@@ -36,35 +33,175 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const TaskList = ({ tasks, setTasks }) => {
-  const [showAddTask, setShowAddTask] = useState(false);
+interface Task {
+  id: string;
+  title: string;
+  dueDate: string;
+  status: string;
+  category: string;
+  activities?: Array<{
+    action: string;
+    timestamp: string;
+    performedBy: string;
+  }>;
+  userId?: string;
+}
+
+interface TasksByStatus {
+  todo?: Task[];
+  inprogress?: Task[];
+  completed?: Task[];
+  [key: string]: Task[] | undefined;
+}
+
+interface TaskListProps {
+  tasks: TasksByStatus;
+  setTasks: React.Dispatch<React.SetStateAction<TasksByStatus>>;
+}
+
+interface NewTask {
+  title: string;
+  dueDate: string;
+  status: string;
+  category: string;
+}
+
+interface FormErrors {
+  title?: string;
+  dueDate?: string;
+  status?: string;
+  category?: string;
+}
+
+const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
+  const [showAddTask, setShowAddTask] = useState<boolean>(false);
   const [sections, setSections] = useState({
     todo: true,
     inprogress: true,
     completed: true,
   });
-  const [selectedTasks, setSelectedTasks] = useState([]);
-  const [newTask, setNewTask] = useState({
+  const [selectedTasks, setSelectedTasks] = useState<Task[]>([]);
+  const [newTask, setNewTask] = useState<NewTask>({
     title: '',
     dueDate: '',
     status: 'TO-DO',
     category: 'WORK',
   });
-  const [activeId, setActiveId] = useState(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  const onStatusChange = async (newStatus: string) => {
+    try {
+      const updatePromises = selectedTasks.map(async (task) => {
+        const taskRef = doc(db, 'tasks', task.id);
+        const timestamp = new Date().toISOString();
+        const newActivity = {
+          action: 'Status Updated',
+          timestamp,
+          performedBy: auth.currentUser?.uid || '',
+        };
+
+        await updateDoc(taskRef, {
+          status: newStatus,
+          activities: [...(task.activities || []), newActivity],
+        });
+      });
+
+      await Promise.all(updatePromises);
+
+      setTasks((prev) => {
+        const newTasks = { ...prev };
+        const statusKey = newStatus?.toLowerCase().replace('-', '');
+
+        Object.keys(newTasks).forEach((key) => {
+          if (newTasks[key]) {
+            newTasks[key] = newTasks[key]?.filter(
+              (task) => !selectedTasks.some((selected) => selected.id === task.id)
+            );
+          }
+        });
+
+        const updatedTasks = selectedTasks.map((task) => ({
+          ...task,
+          status: newStatus,
+        }));
+
+        newTasks[statusKey] = [...(newTasks[statusKey] || []), ...updatedTasks];
+
+        return newTasks;
+      });
+
+      clearSelection();
+    } catch (error) {
+      console.error('Error updating task statuses:', error);
+    }
+  };
+
+  const validateForm = (): boolean => {
+    let newErrors: FormErrors = {};
+
+    if (!newTask.title || newTask.title.trim().length < 3) {
+      newErrors.title = "Title must be at least 3 characters long.";
+    }
+
+    if (!newTask.dueDate) {
+      newErrors.dueDate = "Due date is required.";
+    } else if (new Date(newTask.dueDate) < new Date()) {
+      newErrors.dueDate = "Due date must be in the future.";
+    }
+
+    if (!newTask.status) {
+      newErrors.status = "Please select a status.";
+    }
+
+    if (!newTask.category) {
+      newErrors.category = "Please select a category.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleMultipleDelete = async () => {
+    try {
+      const deletePromises = selectedTasks.map(async (task) => {
+        const taskRef = doc(db, 'tasks', task.id);
+        await deleteDoc(taskRef);
+      });
+
+      await Promise.all(deletePromises);
+
+      setTasks((prev) => {
+        const newTasks = { ...prev };
+        Object.keys(newTasks).forEach((status) => {
+          if (newTasks[status]) {
+            newTasks[status] = newTasks[status]?.filter(
+              (task) => !selectedTasks.some((selected) => selected.id === task.id)
+            );
+          }
+        });
+        return newTasks;
+      });
+
+      clearSelection();
+    } catch (error) {
+      console.error('Error deleting tasks:', error);
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor)
   );
 
-  const toggleSection = (section) => {
-    setSections((prev) => ({
+  const toggleSection = (section: any) => {
+    setSections((prev:any) => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
 
-  const toggleTaskSelection = (task) => {
+  const toggleTaskSelection = (task: Task) => {
     setSelectedTasks((prev) => {
       const isSelected = prev.some((t) => t.id === task.id);
       if (isSelected) {
@@ -74,31 +211,52 @@ const TaskList = ({ tasks, setTasks }) => {
       }
     });
   };
-  const onStatusChange = () => {};
 
-  const handleAddTask = () => {
-    const newId =
-      Math.max(
-        ...Object.values(tasks).flatMap((t) => t.map((task) => task.id)),
-        0
-      ) + 1;
-    const taskToAdd = {
-      id: newId,
-      ...newTask,
-    };
+  const handleAddTask = async () => {
+    if (validateForm()) {
+      const currentUser = auth.currentUser;
 
-    setTasks((prev) => ({
-      ...prev,
-      todo: [...(prev.todo || []), taskToAdd],
-    }));
+      if (!currentUser) {
+        console.error('No user logged in');
+        return;
+      }
+      const statusKey = newTask.status.toLowerCase().replace('-', '');
 
-    setNewTask({
-      title: '',
-      dueDate: '',
-      status: 'TO-DO',
-      category: 'WORK',
-    });
-    setShowAddTask(false);
+      try {
+        const timestamp = new Date().toISOString();
+        const newActivity = {
+          action: 'Task Created',
+          timestamp,
+          performedBy: currentUser.uid,
+        };
+
+        const docRef = await addDoc(collection(db, 'tasks'), {
+          ...newTask,
+          userId: currentUser.uid,
+          activities: [newActivity],
+        });
+
+        const taskToAdd: Task = {
+          id: docRef.id,
+          ...newTask,
+        };
+
+        setTasks((prev) => ({
+          ...prev,
+          [statusKey]: [...(prev[statusKey] || []), taskToAdd],
+        }));
+
+        setNewTask({
+          title: '',
+          dueDate: '',
+          status: 'TO-DO',
+          category: 'WORK',
+        });
+        setShowAddTask(false);
+      } catch (error) {
+        console.error('Error adding task:', error);
+      }
+    }
   };
 
   const clearSelection = () => {
@@ -106,7 +264,7 @@ const TaskList = ({ tasks, setTasks }) => {
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id);
+    setActiveId(event.active.id.toString());
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -116,6 +274,7 @@ const TaskList = ({ tasks, setTasks }) => {
       setActiveId(null);
       return;
     }
+
     const newStatus =
       over.id === 'inprogress'
         ? 'IN-PROGRESS'
@@ -157,21 +316,22 @@ const TaskList = ({ tasks, setTasks }) => {
       if (!overTask || !destStatus) return prev;
 
       // Remove from source
-      newTasks[sourceStatus] = newTasks[sourceStatus].filter(
+      newTasks[sourceStatus] = newTasks[sourceStatus]?.filter(
         (task) => task.id !== active.id
       );
 
       // Insert at new position
-      const overIndex = newTasks[destStatus].findIndex(
+      const overIndex = newTasks[destStatus]?.findIndex(
         (task) => task.id === over.id
       );
 
       newTasks[destStatus] = [
-        ...newTasks[destStatus].slice(0, overIndex),
+        ...((newTasks[destStatus] ?? []) as Task[]), 
+        ...newTasks[destStatus]?.slice(0, overIndex) ?? [],
         { ...activeTask, status: destStatus.toUpperCase() },
-        ...newTasks[destStatus].slice(overIndex),
+        ...newTasks[destStatus]?.slice(overIndex) ?? [],
       ];
-
+      
       return newTasks;
     });
 
@@ -213,99 +373,101 @@ const TaskList = ({ tasks, setTasks }) => {
 
               {sections.todo && (
                 <>
-                  {showAddTask ? (
-                    <div className="p-3 px-10 bg-gray-50 border-b border-gray-200">
-                      <div className="flex gap-4 mb-2">
-                        <input
-                          type="text"
-                          value={newTask.title}
-                          onChange={(e) =>
-                            setNewTask((prev) => ({
-                              ...prev,
-                              title: e.target.value,
-                            }))
-                          }
-                          placeholder="Task Title"
-                          className="flex-1 p-2 bg-transparent outline-none text-sm"
-                        />
-                        <div className="relative">
-                          <input
-                            type="date"
-                            value={newTask.dueDate}
-                            onChange={(e) =>
-                              setNewTask((prev) => ({
-                                ...prev,
-                                dueDate: e.target.value,
-                              }))
-                            }
-                            className={`w-32 p-2 border rounded-2xl text-sm bg-white cursor-pointer ${
-                              !newTask.dueDate && 'text-gray-400'
-                            }`}
-                            style={{ colorScheme: 'none' }}
-                            onFocus={(e) => e.target.showPicker()}
-                          />
-                        </div>
+                 {showAddTask ? (
+  <div className="p-3 px-10 bg-gray-50 border-b border-gray-200">
+    <div className="flex gap-4 mb-2">
+      <input
+        type="text"
+        value={newTask.title}
+        onChange={(e) =>
+          setNewTask((prev) => ({
+            ...prev,
+            title: e.target.value,
+          }))
+        }
+        placeholder="Task Title"
+        className="flex-1 p-2 bg-transparent outline-none text-sm border rounded-md"
+      />
+      {errors.title && <p className="text-red-500 text-xs">{errors.title}</p>}
 
-                        <Select
-                          value={newTask.status}
-                          onValueChange={(value) =>
-                            setNewTask((prev) => ({ ...prev, status: value }))
-                          }
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="TO-DO">TO-DO</SelectItem>
-                            <SelectItem value="IN-PROGRESS">
-                              IN-PROGRESS
-                            </SelectItem>
-                            <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                          </SelectContent>
-                        </Select>
+      <div className="relative">
+        <input
+          type="date"
+          value={newTask.dueDate}
+          onChange={(e) =>
+            setNewTask((prev) => ({
+              ...prev,
+              dueDate: e.target.value,
+            }))
+          }
+          className={`w-32 p-2 border rounded-2xl text-sm bg-white cursor-pointer ${
+            !newTask.dueDate && 'text-gray-400'
+          }`}
+          style={{ colorScheme: 'none' }}
+          onFocus={(e) => e.target.showPicker()}
+        />
+        {errors.dueDate && <p className="text-red-500 text-xs">{errors.dueDate}</p>}
+      </div>
 
-                        <Select
-                          value={newTask.category}
-                          onValueChange={(value) =>
-                            setNewTask((prev) => ({ ...prev, category: value }))
-                          }
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="WORK">WORK</SelectItem>
-                            <SelectItem value="PERSONAL">PERSONAL</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+      <Select
+        value={newTask.status}
+        onValueChange={(value) =>
+          setNewTask((prev) => ({ ...prev, status: value }))
+        }
+      >
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="TO-DO">TO-DO</SelectItem>
+          <SelectItem value="IN-PROGRESS">IN-PROGRESS</SelectItem>
+          <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+        </SelectContent>
+      </Select>
+      {errors.status && <p className="text-red-500 text-xs">{errors.status}</p>}
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleAddTask}
-                          className="px-6  bg-purple-600 text-white rounded-2xl text-sm font-medium hover:bg-purple-700"
-                        >
-                          ADD
-                        </button>
-                        <button
-                          onClick={() => setShowAddTask(false)}
-                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-                        >
-                          CANCEL
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="p-3 flex items-center gap-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
-                      onClick={() => setShowAddTask(true)}
-                    >
-                      <Plus className="w-4 h-4 text-gray-400" />
-                      <div className="flex-1 text-gray-500 text-sm">
-                        Add Task
-                      </div>
-                    </div>
-                  )}
+      <Select
+        value={newTask.category}
+        onValueChange={(value) =>
+          setNewTask((prev) => ({ ...prev, category: value }))
+        }
+      >
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="Select category" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="WORK">WORK</SelectItem>
+          <SelectItem value="PERSONAL">PERSONAL</SelectItem>
+        </SelectContent>
+      </Select>
+      {errors.category && <p className="text-red-500 text-xs">{errors.category}</p>}
+    </div>
+
+    <div className="flex gap-2">
+      <button
+        onClick={handleAddTask}
+        className="px-6 bg-purple-600 text-white rounded-2xl text-sm font-medium hover:bg-purple-700"
+      >
+        ADD
+      </button>
+      <button
+        onClick={() => setShowAddTask(false)}
+        className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+      >
+        CANCEL
+      </button>
+    </div>
+  </div>
+) : (
+  <div
+    className="p-3 flex items-center gap-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
+    onClick={() => setShowAddTask(true)}
+  >
+    <Plus className="w-4 h-4 text-gray-400" />
+    <div className="flex-1 text-gray-500 text-sm">Add Task</div>
+  </div>
+)}
+
 
                   <SortableContext
                     items={tasks.todo?.map((t) => t.id) || []}
@@ -440,8 +602,8 @@ const TaskList = ({ tasks, setTasks }) => {
             <SelectTrigger className="bg-gray-800 text-white border-gray-800 rounded-2xl text-xs w-24 h-7 focus:ring-0">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 text-white border-gray-700 ">
-              <SelectItem value="TO-DO" className="focus:bg-gray-700 ">
+            <SelectContent className="bg-gray-800 text-white border-gray-700">
+              <SelectItem value="TO-DO" className="focus:bg-gray-700">
                 TO-DO
               </SelectItem>
               <SelectItem value="IN-PROGRESS" className="focus:bg-gray-700">
@@ -453,7 +615,10 @@ const TaskList = ({ tasks, setTasks }) => {
             </SelectContent>
           </Select>
 
-          <button className="text-red-500 bg-gray-800 px-2 py-1 rounded-full text-sm">
+          <button 
+            onClick={handleMultipleDelete}
+            className="text-red-500 bg-gray-800 px-2 py-1 rounded-full text-sm hover:bg-gray-700"
+          >
             Delete
           </button>
         </div>

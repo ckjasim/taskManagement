@@ -153,6 +153,7 @@ const KanbanBoard = ({ tasks, setTasks }) => {
           {activeItem && (
             <TaskCard 
               task={activeItem}
+              setTasks={setTasks}
               isDragging={true}
             />
           )}

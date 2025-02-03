@@ -15,6 +15,8 @@ import { auth } from '@/config/firebaseConfig';
 import { useAuth } from '@/context/AuthProvider';
 import TaskModal from '@/components/global/modal/TaskModal';
 import { Tasks, TasksByStatus } from '@/types';
+import { getAuth, signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 const TaskLayout = () => {
   const [activeView, setActiveView] = useState<'list' | 'board'>('list');
@@ -25,6 +27,7 @@ const TaskLayout = () => {
   const [dueDateFilter, setDueDateFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { user } = useAuth();
+  const navigate = useNavigate(); 
 
   const fetchTasks = async () => {
     if (!user) {
@@ -43,7 +46,7 @@ const TaskLayout = () => {
 
       const newTasks: TasksByStatus = {};
       allTasks.forEach((task) => {
-        const statusKey = task.status.toLowerCase().replace('-', '');
+        const statusKey = task.status?.toLowerCase().replace('-', '');
         if (!newTasks[statusKey]) {
           newTasks[statusKey] = [];
         }
@@ -68,8 +71,8 @@ const TaskLayout = () => {
     Object.keys(taskData).forEach((status) => {
       filtered[status] = taskData[status].filter((task) => {
         const searchMatch = search === '' || 
-          task.title.toLowerCase().includes(search.toLowerCase()) ||
-          task.description.toLowerCase().includes(search.toLowerCase());
+          task.title?.toLowerCase().includes(search?.toLowerCase()) ||
+          task.description?.toLowerCase().includes(search?.toLowerCase());
         
         const categoryMatch = category === 'all' || task.category === category;
         let dateMatch = true;
@@ -137,7 +140,7 @@ const TaskLayout = () => {
       });
   
       // Normalize status key
-      const statusKey = taskData.status.toLowerCase().replace(/-/g, '');
+      const statusKey = taskData.status?.toLowerCase().replace(/-/g, '');
   
       // Construct new task object for local state
       const newTask = {
@@ -163,15 +166,22 @@ const TaskLayout = () => {
   
   
 
-  const handleLogout =()=>{
-    
+  const handleLogout = () => {
+    const auth = getAuth();
+  
+    signOut(auth)
+      .then(() => {
+        console.log("User logged out successfully");
+        navigate("/"); // Redirect to home page after logout
+      })
+      .catch((error) => {
+        console.error("Logout Error:", error.message);
+      });
   }
   return (
     <>
       <TaskModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onSubmit={handleAddTask} />
-      <div className="relative w-full px-4 md:px-10 py-6 md:py-14">
-        {/* Header section */}
-        <div className="flex items-center justify-between mb-6 md:mb-3">
+        <div className="flex items-center bg-[#FFF9F9] sm:bg-white justify-between  sm:mb-0  w-full px-4 md:px-10 py-6 sm:py-3 md:pt-14">
           <div className="flex items-center gap-2">
             <div className="rounded">
               <ClipboardList className="text-xl font-bold" />
@@ -185,6 +195,9 @@ const TaskLayout = () => {
             <button className="hidden md:block text-gray-600 text-sm font-semibold">{user?.displayName}</button>
           </div>
         </div>
+      <div className="relative w-full px-4 md:px-10 py-6 sm:py-0 md:pb-14">
+        {/* Header section */}
+        
 
         {/* View toggle and logout section */}
         <div className="hidden md:flex justify-between items-center mb-3">

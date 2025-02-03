@@ -29,8 +29,9 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { mode?: string }
+>(({ className, children,mode, ...props }, ref) => (
+  
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -46,7 +47,7 @@ const DialogContent = React.forwardRef<
         
         // Desktop styles (sm and up)
         'sm:left-[50%] sm:top-[50%] sm:bottom-auto',
-        'sm:max-w-4xl sm:translate-x-[-50%] sm:translate-y-[-50%]',
+        `sm:translate-x-[-50%] sm:translate-y-[-50%] ${ mode == "create" ?   "sm:max-w-xl" :"sm:max-w-4xl"}`,
         'sm:rounded-lg sm:border',
         'sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]',
         'sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]',

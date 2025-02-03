@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import BoldExtension from '@tiptap/extension-bold';
 import ItalicExtension from '@tiptap/extension-italic';
+import { FileUpload } from '@/types';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -20,8 +21,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   onSubmit,
   initialData = null,
   mode = 'create',
-}) => {
-  console.log(initialData, 'jjjsdfdfd');
+}) => { 
   const initialFormData = {
     title: initialData?.title || '',
     description: initialData?.description || '',
@@ -30,6 +30,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
     status: initialData?.status || '',
     files: initialData?.files || [],
   };
+
   const [formData, setFormData] = useState(initialFormData);
   const [view, setView] = useState('details');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,51 +98,106 @@ const TaskModal: React.FC<TaskModalProps> = ({
     e.stopPropagation();
 
     const droppedFiles = Array.from(e.dataTransfer.files);
-    setFormData((prev) => ({
+    // Validate file size and type
+    const validFiles = droppedFiles.filter(file => {
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword',
+                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type);
+      return isValidSize && isValidType;
+    });
+
+    if (validFiles.length !== droppedFiles.length) {
+      alert('Some files were skipped. Files must be under 5MB and in a supported format (images, PDF, DOC).');
+    }
+
+    setFormData(prev => ({
       ...prev,
-      files: [...prev.files, ...droppedFiles],
+      files: [...prev.files, ...validFiles]
     }));
   }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const uploadedFiles = Array.from(e.target.files);
-      setFormData((prev) => ({
+      // Validate file size and type
+      const validFiles = uploadedFiles.filter(file => {
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 
+                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type);
+        return isValidSize && isValidType;
+      });
+
+      if (validFiles.length !== uploadedFiles.length) {
+        alert('Some files were skipped. Files must be under 5MB and in a supported format (images, PDF, DOC).');
+      }
+
+      setFormData(prev => ({
         ...prev,
-        files: [...prev.files, ...uploadedFiles],
+        files: [...prev.files, ...validFiles]
       }));
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent className="min-h-96 p-0 gap-0">
-      {mode === "edit" && (
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex gap-2 sm:hidden w-full bg-gray-100 p-1 rounded-full">
-            {["DETAILS", "ACTIVITY"].map((val) => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setView(val.toLowerCase())}
-                className={`flex-1 px-6 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  view === val.toLowerCase()
-                    ? "bg-black text-white"
-                    : "bg-transparent text-gray-600"
-                }`}
+  const removeFile = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      files: prev.files.filter((_: any, i: number) => i !== index)
+    }));
+  };
+
+  const renderExistingFiles = () => {
+    if (!initialData?.files?.length) return null;
+
+    return (
+      <div className="mt-4">
+        <h4 className="text-sm font-medium text-gray-600 mb-2">Existing Files:</h4>
+        <div className="space-y-2">
+          {initialData.files.map((file: FileUpload, index: number) => (
+            <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+              <a 
+                href={file.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-800 truncate"
               >
-                {val}
-              </button>
-            ))}
-          </div>
+                {file.name}
+              </a>
+            </div>
+          ))}
         </div>
-      )}
-          <div className="flex flex-col sm:flex-row">
-      {/* Details Section - Hidden on mobile when Activity is selected */}
-      <div className={`p-4 pb-0 ${view === 'details' ? 'block' : 'hidden'} sm:block sm:flex-[0_0_55%]`}>
-        <h2 className="text-lg font-medium mb-4">
-          {mode === 'create' ? 'Create Task' : <br/>}
-        </h2>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose} >
+      <DialogContent mode={mode} className="min-h-[650px] sm:min-h-96  p-0 gap-0">
+        {mode === "edit" && (
+          <div className="p-4 border-b mt-8 sm:mt-2 border-gray-100">
+            <div className="flex gap-2 sm:hidden w-full bg-gray-100 p-1 rounded-full">
+              {["DETAILS", "ACTIVITY"].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setView(val.toLowerCase())}
+                  className={`flex-1 px-6 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    view === val.toLowerCase()
+                      ? "bg-black text-white"
+                      : "bg-transparent text-gray-600"
+                  }`}
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row w-full">
+          <div className={`p-4 pb-0 ${view === 'details' ? 'block' : 'hidden'} sm:block `}>
+            <h2 className="text-lg font-medium sm:mb-4">
+              {mode === 'create' ? 'Create Task' : ''}
+            </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -165,8 +221,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
                   className="w-full md:min-h-[120px] min-h-[80px] p-3 text-sm [&_*:focus]:outline-none"
                 />
                 {!editor?.getText() && (
-                  <span className="absolute top-32 left-8 text-gray-400 text-sm flex">
-                    <WrapText className="h-4 w-4 mr-1" />
+                  <span className="absolute sm:top-36 top-44 left-8 text-gray-400 text-sm flex">
+                    <WrapText className=" h-4 w-4 mr-1" />
                     Description
                   </span>
                 )}
@@ -184,9 +240,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        editor?.chain().focus().toggleItalic().run()
-                      }
+                      onClick={() => editor?.chain().focus().toggleItalic().run()}
                       className={`p-1 hover:bg-gray-100 rounded ${
                         editor?.isActive('italic') ? 'bg-gray-200' : ''
                       }`}
@@ -195,9 +249,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        editor?.chain().focus().toggleBulletList().run()
-                      }
+                      onClick={() => editor?.chain().focus().toggleBulletList().run()}
                       className={`p-1 hover:bg-gray-100 rounded ${
                         editor?.isActive('bulletList') ? 'bg-gray-200' : ''
                       }`}
@@ -207,8 +259,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                   </div>
 
                   <div className="text-xs text-gray-400">
-                    {editor?.storage.characterCount?.characters() || 0}/300
-                    characters
+                    {editor?.storage.characterCount?.characters() || 0}/300 characters
                   </div>
                 </div>
               </div>
@@ -223,9 +274,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                       <button
                         key={cat}
                         type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({ ...prev, category: cat }))
-                        }
+                        onClick={() => setFormData((prev) => ({ ...prev, category: cat }))}
                         className={`px-6 py-1.5 rounded-2xl text-xs ${
                           formData.category === cat
                             ? 'bg-purple-600 text-white'
@@ -257,9 +306,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     } rounded-lg text-xs focus:outline-none`}
                   />
                   {errors.dueDate && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.dueDate}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>
                   )}
                 </div>
 
@@ -291,7 +338,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                   Attachment
                 </label>
                 <div
-                  className="border border-dashed border-gray-200 bg-gray-50 rounded-md md:p-4 p-2 text-center"
+                  className="border border-dashed border-gray-200 bg-gray-50 rounded-md md:p-4 p-2"
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                 >
@@ -301,54 +348,74 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     onChange={handleFileUpload}
                     className="hidden"
                     id="file-upload"
+                    accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx"
                   />
-                  <p className="text-sm text-gray-500">
-                    Drop your files here or{' '}
-                    <label
-                      htmlFor="file-upload"
-                      className="text-purple-600 cursor-pointer hover:text-purple-700"
-                    >
-                      Upload
-                    </label>
-                  </p>
-                  {formData.files.length > 0 && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      {formData.files.length} file(s) selected
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">
+                      Drop your files here or{' '}
+                      <label
+                        htmlFor="file-upload"
+                        className="text-purple-600 cursor-pointer hover:text-purple-700"
+                      >
+                        Upload
+                      </label>
                     </p>
+                    
+                  </div>
+
+                  {formData.files.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {formData.files.map((file: File, index: number) => (
+                        <div key={index} className="flex items-center justify-between bg-white p-2 rounded">
+                          <span className="text-sm truncate">{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(index)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
+
+                  {renderExistingFiles()}
                 </div>
               </div>
             </form>
           </div>
+
           {mode === 'edit' && (
-        <div className={`border-t sm:border-l border-gray-100 bg-gray-50 p-4 sm:flex-1 ${
-          view === 'activity' ? 'block' : 'hidden'
-        } sm:block`}>
-          <h3 className="text-sm font-medium text-gray-900 mb-4">Activity</h3>
-          <div className="space-y-3">
-            {initialData?.activities?.map((val, index) => (
-              <div
-                key={index}
-                className="flex justify-between items-start text-xs"
-              >
-                <span className="text-gray-600">{val.action}</span>
-                <span className="text-gray-400">
-                  {new Date(val.timestamp).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  })}
-                </span>
+            <div className={`border-t sm:border-l border-gray-100 bg-gray-50 p-4 sm:flex-1 ${
+              view === 'activity' ? 'block' : 'hidden'
+            } sm:block`}>
+              <h3 className="text-sm font-medium text-gray-900 mb-4">Activity</h3>
+              <div className="space-y-3">
+                {initialData?.activities?.map((val: any, index: number) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-start text-xs"
+                  >
+                    <span className="text-gray-600">{val.action}</span>
+                    <span className="text-gray-400">
+                      {new Date(val.timestamp).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      })}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
-      )}
-        </div>
-   
-        <div className="flex justify-end gap-3 p-4 mt-4 border-t border-gray-100 bg-gray-50">
+
+        <div className={`flex justify-end gap-3 p-4 mt-4 border-t border-gray-100 bg-gray-50  ${
+              view === 'activity' ? 'hidden' : 'block'}`}>
           <button
             type="button"
             onClick={onClose}

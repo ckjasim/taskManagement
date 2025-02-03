@@ -1,5 +1,10 @@
 import { UniqueIdentifier } from "@dnd-kit/core";
 
+export interface FileUpload {
+  name: string;
+  url: string;
+}
+
 export type DNDType = {
   id: UniqueIdentifier;
   title: string;
@@ -31,12 +36,16 @@ export interface Column {
 export interface Tasks {
   id: string;
   title: string;
-  description: string;
-  category: string;
-  status: string;
   dueDate: string;
-  userId: string;
-  [key: string]: any; // For any additional fields
+  status: string;
+  category: string;
+  description?:string
+  activities?: Array<{
+    action: string;
+    timestamp: string;
+    performedBy: string;
+  }>;
+  userId?: string;
 }
 
 export interface TasksByStatus {

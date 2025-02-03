@@ -40,7 +40,7 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
     setIsCreateModalOpen(true);
   };
 
-  const handleDelete = async () => {
+const handleDelete = async () => {
     try {
       // Remove task from local state
       setTasks((prev) => {
@@ -71,31 +71,36 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
       const updatedTasks = { ...prev };
       const statusKey = values.status.toLowerCase().replace('-', '');
       const oldStatusKey = task.status.toLowerCase().replace('-', '');
-
-      // Remove from old status
-      updatedTasks[oldStatusKey] = prev[oldStatusKey].filter(
-        (t) => t.id !== task.id
-      );
-
-      // Add to new status
-      updatedTasks[statusKey] = [
-        ...(prev[statusKey] || []),
-        { ...values, id: task.id },
-      ];
-
+  
+      // Ensure old status exists before modifying it
+      if (updatedTasks[oldStatusKey]) {
+        updatedTasks[oldStatusKey] = updatedTasks[oldStatusKey].map((t) =>
+          t.id === task.id ? { ...t, ...values } : t
+        );
+      }
+  
+      // If the status is changed, move the task to the correct category
+      if (oldStatusKey !== statusKey) {
+        updatedTasks[oldStatusKey] = updatedTasks[oldStatusKey].filter(
+          (t) => t.id !== task.id
+        );
+        updatedTasks[statusKey] = [...(updatedTasks[statusKey] || []), { ...task, ...values }];
+      }
+  
       return updatedTasks;
     });
-
+  
     try {
-      const taskRef = doc(db, 'tasks', task.id); // Reference task in Firestore
-      await updateDoc(taskRef, { ...values }); // Update task
+      const taskRef = doc(db, 'tasks', task.id); // Reference existing task in Firestore
+      await updateDoc(taskRef, { ...values }); // Update the task
       console.log('Task updated successfully in Firebase!');
     } catch (error) {
       console.error('Error updating task in Firebase:', error);
     }
-
+  
     setIsCreateModalOpen(false);
   };
+  
 
   const handleStatusChange = async (newStatus) => {
     const oldStatus = task.status.toLowerCase().replace('-', '');
