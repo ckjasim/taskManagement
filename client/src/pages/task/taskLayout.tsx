@@ -21,8 +21,8 @@ import { useNavigate } from 'react-router-dom';
 const TaskLayout = () => {
   const [activeView, setActiveView] = useState<'list' | 'board'>('list');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<any>();
-  const [filteredTasks, setFilteredTasks] = useState<any>();
+  const [tasks, setTasks] = useState<any>({});
+  const [filteredTasks, setFilteredTasks] = useState<any>({});
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dueDateFilter, setDueDateFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -44,12 +44,12 @@ const TaskLayout = () => {
         ...doc.data(),
       })) as Tasks[];
 
-      const newTasks: any = {
+      const newTasks: TasksByStatus = {
         todo: [],
         inprogress: [],
         completed: []
       };
-      allTasks.forEach((task) => {
+      allTasks.forEach((task:any) => {
         const statusKey = task.status?.toLowerCase().replace('-', '');
         if (!newTasks[statusKey]) {
           newTasks[statusKey] = [];
@@ -70,13 +70,9 @@ const TaskLayout = () => {
     dueDate: string,
     search: string
   ) => {
-    const filtered: any = {
-      todo: [],
-      inprogress: [],
-      completed: []
-    };
+    const filtered: any = {};
     
-    Object.keys(taskData).forEach((status:any) => {
+    Object.keys(taskData).forEach((status :any) => {
       filtered[status] = taskData[status].filter((task:any) => {
         const searchMatch = search === '' || 
           task.title?.toLowerCase().includes(search?.toLowerCase()) ||
@@ -140,17 +136,14 @@ const TaskLayout = () => {
         performedBy: currentUser.uid,
       };
   
-      // Add task to Firestore
       const docRef = await addDoc(collection(db, 'tasks'), {
         ...taskData,
         userId: currentUser.uid,
         activities: [newActivity],
       });
   
-      // Normalize status key
       const statusKey = taskData.status?.toLowerCase().replace(/-/g, '');
   
-      // Construct new task object for local state
       const newTask = {
         id: docRef.id,
         ...taskData,
@@ -158,7 +151,6 @@ const TaskLayout = () => {
         activities: [newActivity],
       };
   
-      // Update local state
       const updatedTasks = {
         ...tasks,
         [statusKey]: [newTask, ...(tasks[statusKey] || [])],
@@ -173,14 +165,13 @@ const TaskLayout = () => {
   };
   
   
-
   const handleLogout = () => {
     const auth = getAuth();
   
     signOut(auth)
       .then(() => {
         console.log("User logged out successfully");
-        navigate("/"); // Redirect to home page after logout
+        navigate("/"); 
       })
       .catch((error) => {
         console.error("Logout Error:", error.message);

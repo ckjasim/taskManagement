@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
-// Your Firebase configuration
 
 const firebaseConfig = {
   apiKey:import.meta.env.VITE_API_KEY,
@@ -14,10 +14,10 @@ const firebaseConfig = {
   measurementId:import.meta.env.VITE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
+const storage = getStorage(app);  
 
-export { auth, provider, signInWithPopup, db, doc, setDoc, getDoc };
+export { auth, provider, signInWithPopup, db, doc, setDoc, getDoc,storage };

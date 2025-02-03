@@ -362,16 +362,16 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                 onClick={() => toggleSection('todo')}
               >
                 <span className="font-medium">
-                  Todo ({tasks.todo?.length || 0})
+                  Todo ({tasks?.todo?.length || 0})
                 </span>
-                {sections.todo ? (
+                {sections?.todo ? (
                   <ChevronUp className="w-4 h-4" />
                 ) : (
                   <ChevronDown className="w-4 h-4" />
                 )}
               </div>
 
-              {sections.todo && (
+              {sections?.todo && (
                 <>
                  {showAddTask ? (
   <div className="p-3 px-10 bg-gray-50 border-b border-gray-200">
@@ -470,11 +470,11 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
 
 
                   <SortableContext
-                    items={tasks.todo?.map((t) => t.id) || []}
+                    items={tasks?.todo?.map((t) => t.id) || []}
                     strategy={verticalListSortingStrategy}
                   >
-                    {tasks.todo && tasks.todo.length > 0 ? (
-                      tasks.todo.map((task) => (
+                    {tasks?.todo && tasks?.todo?.length > 0 ? (
+                      tasks?.todo?.map((task) => (
                         <SortableTask
                           key={task.id}
                           task={task}
@@ -500,21 +500,21 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                 onClick={() => toggleSection('inprogress')}
               >
                 <span className="font-medium">
-                  In-Progress ({tasks.inprogress?.length || 0})
+                  In-Progress ({tasks?.inprogress?.length || 0})
                 </span>
-                {sections.inprogress ? (
+                {sections?.inprogress ? (
                   <ChevronUp className="w-4 h-4" />
                 ) : (
                   <ChevronDown className="w-4 h-4" />
                 )}
               </div>
-              {sections.inprogress && (
+              {sections?.inprogress && (
                 <SortableContext
-                  items={tasks.inprogress?.map((t) => t.id) || []}
+                  items={tasks?.inprogress?.map((t) => t.id) || []}
                   strategy={verticalListSortingStrategy}
                 >
-                  {tasks.inprogress && tasks.inprogress.length > 0 ? (
-                    tasks.inprogress?.map((task) => (
+                  {tasks?.inprogress && tasks?.inprogress?.length > 0 ? (
+                    tasks?.inprogress?.map((task) => (
                       <SortableTask
                         key={task.id}
                         task={task}
@@ -539,21 +539,21 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                 onClick={() => toggleSection('completed')}
               >
                 <span className="font-medium">
-                  Completed ({tasks.completed?.length || 0})
+                  Completed ({tasks?.completed?.length || 0})
                 </span>
-                {sections.completed ? (
+                {sections?.completed ? (
                   <ChevronUp className="w-4 h-4" />
                 ) : (
                   <ChevronDown className="w-4 h-4" />
                 )}
               </div>
-              {sections.completed && (
+              {sections?.completed && (
                 <SortableContext
-                  items={tasks.completed?.map((t) => t.id) || []}
+                  items={tasks?.completed?.map((t) => t.id) || []}
                   strategy={verticalListSortingStrategy}
                 >
-                  {tasks.completed && tasks.completed.length > 0 ? (
-                    tasks.completed?.map((task) => (
+                  {tasks?.completed && tasks?.completed?.length > 0 ? (
+                    tasks?.completed?.map((task) => (
                       <SortableTask
                         key={task.id}
                         task={task}
@@ -579,8 +579,8 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
               <Calendar className="w-4 h-4 text-gray-400" />
               <div className="flex-1">
                 {tasks.todo?.find((t) => t.id === activeId)?.title ||
-                  tasks.inprogress?.find((t) => t.id === activeId)?.title ||
-                  tasks.completed?.find((t) => t.id === activeId)?.title}
+                  tasks?.inprogress?.find((t) => t.id === activeId)?.title ||
+                  tasks?.completed?.find((t) => t.id === activeId)?.title}
               </div>
             </div>
           )}

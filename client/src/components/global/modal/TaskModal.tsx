@@ -6,6 +6,8 @@ import StarterKit from '@tiptap/starter-kit';
 import BoldExtension from '@tiptap/extension-bold';
 import ItalicExtension from '@tiptap/extension-italic';
 import { FileUpload } from '@/types';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/config/firebaseConfig';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -98,9 +100,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
     e.stopPropagation();
 
     const droppedFiles = Array.from(e.dataTransfer.files);
-    // Validate file size and type
     const validFiles = droppedFiles.filter(file => {
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      const isValidSize = file.size <= 5 * 1024 * 1024; 
       const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword',
                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type);
       return isValidSize && isValidType;
@@ -116,24 +117,32 @@ const TaskModal: React.FC<TaskModalProps> = ({
     }));
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const uploadedFiles = Array.from(e.target.files);
-      // Validate file size and type
       const validFiles = uploadedFiles.filter(file => {
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+        const isValidSize = file.size <= 5 * 1024 * 1024; 
         const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 
-                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type);
+                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type);
         return isValidSize && isValidType;
       });
-
+  
       if (validFiles.length !== uploadedFiles.length) {
         alert('Some files were skipped. Files must be under 5MB and in a supported format (images, PDF, DOC).');
       }
-
+  
+      const fileUrls = await Promise.all(
+        validFiles.map(async (file) => {
+          const fileRef = ref(storage, `tasks/${file.name}`);
+          await uploadBytes(fileRef, file);
+          const downloadURL = await getDownloadURL(fileRef);
+          return downloadURL; 
+        })
+      );
+  
       setFormData(prev => ({
         ...prev,
-        files: [...prev.files, ...validFiles]
+        files: [...prev.files, ...fileUrls]
       }));
     }
   };
