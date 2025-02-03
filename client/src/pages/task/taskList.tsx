@@ -48,10 +48,10 @@ interface Task {
 }
 
 interface TasksByStatus {
-  todo?: Task[];
-  inprogress?: Task[];
-  completed?: Task[];
-  [key: string]: Task[] | undefined;
+  todo: Task[];
+  inprogress: Task[];
+  completed: Task[];
+  [key: string]: Task[];
 }
 
 interface TaskListProps {

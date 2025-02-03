@@ -12,11 +12,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(firebaseUser);
     });
 
-    return () => unsubscribe(); // Cleanup listener
+    return () => unsubscribe(); 
   }, []);
 
   return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
+
 export const useAuth = () => useContext(AuthContext);

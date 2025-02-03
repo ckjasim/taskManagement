@@ -10,7 +10,7 @@ const TaskActions: React.FC<TaskActionsProps> = ({ onEdit, onDelete }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent drag event from interfering with click
+    e.stopPropagation(); 
     setIsMenuOpen((prev) => !prev);
   };
 

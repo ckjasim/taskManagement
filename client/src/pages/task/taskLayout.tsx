@@ -21,8 +21,8 @@ import { useNavigate } from 'react-router-dom';
 const TaskLayout = () => {
   const [activeView, setActiveView] = useState<'list' | 'board'>('list');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<TasksByStatus>({});
-  const [filteredTasks, setFilteredTasks] = useState<TasksByStatus>({});
+  const [tasks, setTasks] = useState<any>();
+  const [filteredTasks, setFilteredTasks] = useState<any>();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dueDateFilter, setDueDateFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -44,7 +44,11 @@ const TaskLayout = () => {
         ...doc.data(),
       })) as Tasks[];
 
-      const newTasks: TasksByStatus = {};
+      const newTasks: any = {
+        todo: [],
+        inprogress: [],
+        completed: []
+      };
       allTasks.forEach((task) => {
         const statusKey = task.status?.toLowerCase().replace('-', '');
         if (!newTasks[statusKey]) {
@@ -66,10 +70,14 @@ const TaskLayout = () => {
     dueDate: string,
     search: string
   ) => {
-    const filtered: TasksByStatus = {};
+    const filtered: any = {
+      todo: [],
+      inprogress: [],
+      completed: []
+    };
     
-    Object.keys(taskData).forEach((status) => {
-      filtered[status] = taskData[status].filter((task) => {
+    Object.keys(taskData).forEach((status:any) => {
+      filtered[status] = taskData[status].filter((task:any) => {
         const searchMatch = search === '' || 
           task.title?.toLowerCase().includes(search?.toLowerCase()) ||
           task.description?.toLowerCase().includes(search?.toLowerCase());

@@ -49,5 +49,8 @@ export interface Tasks {
 }
 
 export interface TasksByStatus {
-  [key: string]: Tasks[];
+  todo: Task[];
+  inprogress: Task[];
+  completed: Task[];
+  [key: number]: Task[];
 }

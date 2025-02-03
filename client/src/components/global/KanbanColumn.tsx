@@ -20,7 +20,9 @@ export const KanbanColumn = ({ column, tasks }: { column: Column; tasks: Task[] 
         {tasks && tasks.length ? (
           <div className="space-y-4">
             {tasks.map(task => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} setTasks={function (): void {
+                throw new Error("Function not implemented.");
+              } } />
             ))}
           </div>
         ) : (
