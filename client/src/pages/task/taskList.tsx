@@ -28,7 +28,13 @@ import {
 import { SortableTask } from '@/components/global/SortableTask';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebaseConfig';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const TaskList = ({ tasks, setTasks }) => {
   const [showAddTask, setShowAddTask] = useState(false);
@@ -68,9 +74,7 @@ const TaskList = ({ tasks, setTasks }) => {
       }
     });
   };
-  const onStatusChange =()=>{
-    
-  }
+  const onStatusChange = () => {};
 
   const handleAddTask = () => {
     const newId =
@@ -209,79 +213,99 @@ const TaskList = ({ tasks, setTasks }) => {
 
               {sections.todo && (
                 <>
-                      {showAddTask ? (
-        <div className="p-3 px-10 bg-gray-50 border-b border-gray-200">
-          <div className="flex gap-4 mb-2">
-            <input
-              type="text"
-              value={newTask.title}
-              onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="Task Title"
-              className="flex-1 p-2 bg-transparent outline-none text-sm"
-            />
-            <div className="relative">
-              <input
-                type="date"
-                value={newTask.dueDate}
-                onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
-                className={`w-32 p-2 border rounded-2xl text-sm bg-white cursor-pointer ${!newTask.dueDate && 'text-gray-400'}`}
-                style={{ colorScheme: 'none' }}
-                onFocus={(e) => e.target.showPicker()}
-              />
-            </div>
-            
-            <Select
-              value={newTask.status}
-              onValueChange={(value) => setNewTask(prev => ({ ...prev, status: value }))}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TO-DO">TO-DO</SelectItem>
-                <SelectItem value="IN-PROGRESS">IN-PROGRESS</SelectItem>
-                <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-              </SelectContent>
-            </Select>
+                  {showAddTask ? (
+                    <div className="p-3 px-10 bg-gray-50 border-b border-gray-200">
+                      <div className="flex gap-4 mb-2">
+                        <input
+                          type="text"
+                          value={newTask.title}
+                          onChange={(e) =>
+                            setNewTask((prev) => ({
+                              ...prev,
+                              title: e.target.value,
+                            }))
+                          }
+                          placeholder="Task Title"
+                          className="flex-1 p-2 bg-transparent outline-none text-sm"
+                        />
+                        <div className="relative">
+                          <input
+                            type="date"
+                            value={newTask.dueDate}
+                            onChange={(e) =>
+                              setNewTask((prev) => ({
+                                ...prev,
+                                dueDate: e.target.value,
+                              }))
+                            }
+                            className={`w-32 p-2 border rounded-2xl text-sm bg-white cursor-pointer ${
+                              !newTask.dueDate && 'text-gray-400'
+                            }`}
+                            style={{ colorScheme: 'none' }}
+                            onFocus={(e) => e.target.showPicker()}
+                          />
+                        </div>
 
-            <Select
-              value={newTask.category}
-              onValueChange={(value) => setNewTask(prev => ({ ...prev, category: value }))}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="WORK">WORK</SelectItem>
-                <SelectItem value="PERSONAL">PERSONAL</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={handleAddTask}
-              className="px-6  bg-purple-600 text-white rounded-2xl text-sm font-medium hover:bg-purple-700"
-            >
-              ADD
-            </button>
-            <button
-              onClick={() => setShowAddTask(false)}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              CANCEL
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="p-3 flex items-center gap-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
-          onClick={() => setShowAddTask(true)}
-        >
-          <Plus className="w-4 h-4 text-gray-400" />
-          <div className="flex-1 text-gray-500 text-sm">Add Task</div>
-        </div>
-      )}
+                        <Select
+                          value={newTask.status}
+                          onValueChange={(value) =>
+                            setNewTask((prev) => ({ ...prev, status: value }))
+                          }
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="TO-DO">TO-DO</SelectItem>
+                            <SelectItem value="IN-PROGRESS">
+                              IN-PROGRESS
+                            </SelectItem>
+                            <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Select
+                          value={newTask.category}
+                          onValueChange={(value) =>
+                            setNewTask((prev) => ({ ...prev, category: value }))
+                          }
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="WORK">WORK</SelectItem>
+                            <SelectItem value="PERSONAL">PERSONAL</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleAddTask}
+                          className="px-6  bg-purple-600 text-white rounded-2xl text-sm font-medium hover:bg-purple-700"
+                        >
+                          ADD
+                        </button>
+                        <button
+                          onClick={() => setShowAddTask(false)}
+                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="p-3 flex items-center gap-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                      onClick={() => setShowAddTask(true)}
+                    >
+                      <Plus className="w-4 h-4 text-gray-400" />
+                      <div className="flex-1 text-gray-500 text-sm">
+                        Add Task
+                      </div>
+                    </div>
+                  )}
 
                   <SortableContext
                     items={tasks.todo?.map((t) => t.id) || []}
@@ -402,8 +426,8 @@ const TaskList = ({ tasks, setTasks }) => {
       </DndContext>
 
       {/* Selection Action Bar */}
-    {selectedTasks.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2 rounded-xl flex items-center gap-3 shadow-lg border border-gray-700">
+      {selectedTasks.length > 0 && (
+        <div className="w-max md:w-fit fixed bottom-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2 rounded-xl flex items-center gap-3 shadow-lg border border-gray-700">
           <button
             onClick={clearSelection}
             className="flex items-center gap-2 bg-gray-800 px-2 py-1 rounded-full text-sm"
@@ -411,15 +435,21 @@ const TaskList = ({ tasks, setTasks }) => {
             <span>{selectedTasks.length} Tasks Selected</span>
             <X className="w-4 h-4" />
           </button>
-          
+
           <Select onValueChange={onStatusChange}>
             <SelectTrigger className="bg-gray-800 text-white border-gray-800 rounded-2xl text-xs w-24 h-7 focus:ring-0">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 text-white border-gray-700 ">
-              <SelectItem value="TO-DO" className="focus:bg-gray-700 ">TO-DO</SelectItem>
-              <SelectItem value="IN-PROGRESS" className="focus:bg-gray-700">IN-PROGRESS</SelectItem>
-              <SelectItem value="COMPLETED" className="focus:bg-gray-700">COMPLETED</SelectItem>
+              <SelectItem value="TO-DO" className="focus:bg-gray-700 ">
+                TO-DO
+              </SelectItem>
+              <SelectItem value="IN-PROGRESS" className="focus:bg-gray-700">
+                IN-PROGRESS
+              </SelectItem>
+              <SelectItem value="COMPLETED" className="focus:bg-gray-700">
+                COMPLETED
+              </SelectItem>
             </SelectContent>
           </Select>
 

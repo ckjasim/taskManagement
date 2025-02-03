@@ -145,7 +145,8 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
             onChange={() => onSelect(task)}
           />
           <div {...listeners} className="cursor-grab">
-            <GripVertical className="w-4 h-4 text-gray-400" />
+          <GripVertical className="w-4 h-4 text-gray-400 hidden sm:block" />
+
           </div>
 
           <CircleCheck
@@ -166,12 +167,12 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
         </div>
 
         {/* Middle Section: Due Date */}
-        <div className="text-sm text-gray-500 w-1/5 text-center">
+        <div className="text-sm text-gray-500 w-1/5 text-center hidden sm:block">
           {formattedDate}
         </div>
 
         {/* Status Dropdown */}
-        <div className="relative w-1/5 text-center">
+        <div className="relative w-1/5 text-center hidden sm:block">
           <div
             className="text-sm text-gray-500 cursor-pointer hover:text-gray-700"
             onClick={() => setIsOpen(!isOpen)}
@@ -199,7 +200,7 @@ export const SortableTask = ({ task, selected, onSelect, setTasks }) => {
         </div>
 
         {/* Right Section: Category & Actions */}
-        <div className="text-sm text-gray-500 w-1/5 text-center">
+        <div className="text-sm text-gray-500 w-1/5 text-center hidden sm:block">
           {task.category}
         </div>
         <TaskActions onEdit={handleEdit} onDelete={handleDelete} />

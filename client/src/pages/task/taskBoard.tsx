@@ -62,6 +62,14 @@ const KanbanBoard = ({ tasks, setTasks }) => {
     setActiveId(event.active.id);
   };
 
+  const findColumnByTaskId = (taskId: UniqueIdentifier) => {
+    return columns.find(col => col.items.some(item => item.id === taskId));
+  };
+
+  const findColumnById = (columnId: UniqueIdentifier) => {
+    return columns.find(col => col.id === columnId);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
   
@@ -70,47 +78,39 @@ const KanbanBoard = ({ tasks, setTasks }) => {
       return;
     }
   
-    // Find the source and destination columns
-    const activeContainer = columns.find(col =>
-      col.items.some(item => item.id === active.id)
-    );
-    const overContainer = columns.find(col =>
-      col.id === over.id || col.items.some(item => item.id === over.id)
-    );
-
-    console.log(activeContainer,'ssssssssss')
-    console.log(overContainer,'fff')
-  
-    if (!activeContainer || !overContainer) {
+    const sourceColumn = findColumnByTaskId(active.id);
+    
+    const overColumn = findColumnById(over.id) || findColumnByTaskId(over.id);
+    
+    if (!sourceColumn || !overColumn) {
       setActiveId(null);
       return;
     }
-  
-    const activeItem = activeContainer.items.find(item => item.id === active.id);
+
+    const activeItem = sourceColumn.items.find(item => item.id === active.id);
     if (!activeItem) {
       setActiveId(null);
       return;
     }
 
     const newStatus =
-      overContainer.id === "inprogress"
+      overColumn.id === "inprogress"
         ? "IN-PROGRESS"
-        : overContainer.id === "completed"
+        : overColumn.id === "completed"
         ? "COMPLETED"
         : "TO-DO";
 
     setTasks(prev => {
-      // First, remove the task from all columns to prevent duplicates
       const cleanedPrev = Object.entries(prev).reduce((acc, [key, value]) => {
         acc[key] = value.filter(task => task.id !== active.id);
         return acc;
       }, {});
       
-      // Then add the task to the destination column
+      // Add the task to the destination column
       return {
         ...cleanedPrev,
-        [overContainer.id]: [
-          ...cleanedPrev[overContainer.id],
+        [overColumn.id]: [
+          ...cleanedPrev[overColumn.id],
           { ...activeItem, status: newStatus }
         ]
       };

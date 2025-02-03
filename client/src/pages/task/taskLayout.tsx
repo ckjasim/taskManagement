@@ -113,28 +113,46 @@ const TaskLayout = () => {
     applyFilters(tasks, categoryFilter, dueDateFilter, searchQuery);
   }, [categoryFilter, dueDateFilter, searchQuery, tasks]);
 
-  const handleAddTask = async (taskData: Omit<Tasks, 'id' | 'userId'>) => {
+  const handleAddTask = async (taskData: Omit<Tasks, 'id' | 'userId' | 'activities'>) => {
     const currentUser = auth.currentUser;
-
+  
     if (!currentUser) {
       console.error('No user logged in');
       return;
     }
-
+  
     try {
+      const timestamp = new Date().toISOString();
+      const newActivity = {
+        action: 'Task Created',
+        timestamp,
+        performedBy: currentUser.uid,
+      };
+  
+      // Add task to Firestore
       const docRef = await addDoc(collection(db, 'tasks'), {
         ...taskData,
         userId: currentUser.uid,
+        activities: [newActivity],
       });
-
-      const statusKey = taskData.status.toLowerCase().replace('-', '');
-      const newTask = { id: docRef.id, ...taskData, userId: currentUser.uid };
-
+  
+      // Normalize status key
+      const statusKey = taskData.status.toLowerCase().replace(/-/g, '');
+  
+      // Construct new task object for local state
+      const newTask = {
+        id: docRef.id,
+        ...taskData,
+        userId: currentUser.uid,
+        activities: [newActivity],
+      };
+  
+      // Update local state
       const updatedTasks = {
         ...tasks,
         [statusKey]: [newTask, ...(tasks[statusKey] || [])],
       };
-
+  
       setTasks(updatedTasks);
       applyFilters(updatedTasks, categoryFilter, dueDateFilter, searchQuery);
       setIsCreateModalOpen(false);
@@ -142,57 +160,48 @@ const TaskLayout = () => {
       console.error('Error adding task to Firestore:', error);
     }
   };
+  
+  
 
+  const handleLogout =()=>{
+    
+  }
   return (
     <>
-      <TaskModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleAddTask}
-      />
-      <div className="relative w-full px-10 py-14">
-
-        <div className="flex items-center justify-between mb-3">
+      <TaskModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onSubmit={handleAddTask} />
+      <div className="relative w-full px-4 md:px-10 py-6 md:py-14">
+        {/* Header section */}
+        <div className="flex items-center justify-between mb-6 md:mb-3">
           <div className="flex items-center gap-2">
             <div className="rounded">
               <ClipboardList className="text-xl font-bold" />
             </div>
             <h1 className="text-xl font-semibold">TaskBuddy</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <div className="relative">
-              <img
-                className="w-8 h-8 rounded-full"
-                src={user?.photoURL || ''}
-                alt="User avatar"
-              />
+              <img className="w-8 h-8 rounded-full" src={user?.photoURL || ""} alt="User avatar" />
             </div>
-            <button className="text-gray-600 text-sm font-semibold">
-              {user?.displayName}
-            </button>
-          </div>       
+            <button className="hidden md:block text-gray-600 text-sm font-semibold">{user?.displayName}</button>
+          </div>
         </div>
 
-        {/* View toggle section remains the same */}
-        <div className="flex justify-between items-center mb-3">
+        {/* View toggle and logout section */}
+        <div className="hidden md:flex justify-between items-center mb-3">
           <div className="flex gap-4">
             <button
-              onClick={() => setActiveView('list')}
+              onClick={() => setActiveView("list")}
               className={`flex items-center gap-2 font-medium ${
-                activeView === 'list'
-                  ? 'text-black font-bold border-black border-b-2'
-                  : 'text-gray-600'
+                activeView === "list" ? "text-black font-bold border-black border-b-2" : "text-gray-600"
               }`}
             >
               <List className="w-4 h-4" /> List
             </button>
 
             <button
-              onClick={() => setActiveView('board')}
+              onClick={() => setActiveView("board")}
               className={`flex items-center gap-2 font-medium ${
-                activeView === 'board'
-                  ? 'text-black font-bold border-black border-b-2'
-                  : 'text-gray-600'
+                activeView === "board" ? "text-black font-bold border-black border-b-2" : "text-gray-600"
               }`}
             >
               <LayoutGrid className="w-4 h-4" /> Board
@@ -200,59 +209,71 @@ const TaskLayout = () => {
           </div>
 
           <div className="flex items-center gap-2 rounded-xl px-2 py-2 border border-gray-200">
-            <button className="text-gray-600 text-sm font-semibold">
+            <button onClick={handleLogout} className="text-gray-600 text-sm font-semibold">
               Logout
             </button>
             <LogOut className="w-4 h-4 text-sm" />
           </div>
         </div>
 
+        {/* Mobile Add Task Button */}
+        <div className="md:hidden flex justify-end mb-8">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-8 py-3 bg-purple-700 text-white rounded-full text-sm font-medium hover:bg-purple-800 transition-colors"
+          >
+            ADD TASK
+          </button>
+        </div>
+
         {/* Filters and search section */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="gap-4">
-            <div className="flex gap-4 items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-6">
+          <div className="w-full md:w-auto">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
               <span className="text-sm font-medium">Filter by:</span>
-              <div className="relative">
-                <select 
-                  className="appearance-none px-2 py-1 pr-8 border rounded-2xl bg-white text-sm"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                >
-                  <option value="all">All Categories</option>
-                  <option value="Work">Work</option>
-                  <option value="Personal">Personal</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
-              <div className="relative">
-                <select 
-                  className="appearance-none px-2 py-1 pr-8 border rounded-2xl bg-white text-sm"
-                  value={dueDateFilter}
-                  onChange={(e) => setDueDateFilter(e.target.value)}
-                >
-                  <option value="all">All Due Dates</option>
-                  <option value="today">Due Today</option>
-                  <option value="week">Due This Week</option>
-                  <option value="month">Due This Month</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <div className="flex gap-4  md:w-auto">
+                <div className="relative flex-1 md:flex-none">
+                  <select
+                    className="w-full md:w-auto appearance-none px-4 py-2 pr-8 border rounded-full bg-white text-sm"
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                  >
+                    <option value="all">Category</option>
+                    <option value="Work">Work</option>
+                    <option value="Personal">Personal</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
+                <div className="relative flex-1 md:flex-none">
+                  <select
+                    className="w-full md:w-auto appearance-none px-4 py-2 pr-8 border rounded-full bg-white text-sm"
+                    value={dueDateFilter}
+                    onChange={(e) => setDueDateFilter(e.target.value)}
+                  >
+                    <option value="all">Due Date</option>
+                    <option value="today">Due Today</option>
+                    <option value="week">Due This Week</option>
+                    <option value="month">Due This Month</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex gap-4">
-            <div className="relative">
+          <div className="flex w-full md:w-auto gap-4">
+            <div className="relative flex-1 md:flex-none">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-3xl text-sm"
+                className="w-full md:w-auto pl-10 pr-4 py-2 border rounded-full text-sm"
               />
             </div>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-8 py-2 bg-[#7b1984e2] text-white rounded-3xl text-xs font-medium hover:bg-[#7b1984fe] transition-colors"
+              className="hidden md:block px-8 py-2 bg-[#7b1984e2] text-white rounded-3xl text-xs font-medium hover:bg-[#7b1984fe] transition-colors"
             >
               ADD TASK
             </button>
@@ -260,14 +281,14 @@ const TaskLayout = () => {
         </div>
 
         {/* Task views */}
-        {activeView === 'list' ? (
+        {activeView === "list" ? (
           <TaskList tasks={filteredTasks} setTasks={setTasks} />
         ) : (
           <KanbanBoard tasks={filteredTasks} setTasks={setTasks} />
         )}
       </div>
     </>
-  );
+  )
 };
 
 export default TaskLayout;
